@@ -24,7 +24,7 @@ public class ExampleUnitTest {
     @Test
     public void testGreenColor() {
 
-        int color = MainActivity.getColorFromName("thuan");
+        int color = MainActivity.getColorFromName("huy");
 
         assertEquals(0xff00ff00, color);
     }
