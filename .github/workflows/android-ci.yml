@@ -39,7 +39,7 @@ jobs:
       - name: Run Unit Tests
         run: ./gradlew test
 
-      # 7. UI Test (Emulator handled automatically)
+      # 7. UI Test
       - name: Run UI Tests
         uses: reactivecircus/android-emulator-runner@v2
         with:
@@ -58,11 +58,19 @@ jobs:
             -gpu swiftshader_indirect
             -memory 2048
             -delay-adb
+            -read-only
 
           emulator-boot-timeout: 600
 
           script: |
+            set -e
+
             echo "Waiting for device..."
+            adb wait-for-device
+
+            echo "Restarting ADB..."
+            adb kill-server
+            adb start-server
             adb wait-for-device
 
             echo "Waiting for PackageManager..."
