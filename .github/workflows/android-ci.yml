@@ -12,7 +12,7 @@ jobs:
 
     steps:
 
-      # 1. Lấy code
+      # 1. Checkout
       - name: Checkout code
         uses: actions/checkout@v4
 
@@ -23,7 +23,11 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      # 3. Cache Gradle
+      # 3. Setup Android SDK (QUAN TRỌNG)
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      # 4. Cache Gradle
       - name: Cache Gradle
         uses: actions/cache@v3
         with:
@@ -32,28 +36,21 @@ jobs:
             ~/.gradle/wrapper
           key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*') }}
 
-      # 4. Cấp quyền gradlew
+      # 5. Grant permission
       - name: Grant execute permission
         run: chmod +x gradlew
 
-      # 5. Set Gradle memory (tránh OOM)
-      - name: Set Gradle Memory
-        run: |
-          echo "" >> gradle.properties
-          echo "org.gradle.jvmargs=-Xmx2g -XX:MaxMetaspaceSize=512m" >> gradle.properties
-
-
-      # 6. Chạy Unit Test
+      # 6. Unit Test
       - name: Run Unit Tests
         run: ./gradlew test
 
-      # 7. Restart ADB (tránh offline)
+      # 7. Restart ADB (sau khi có SDK)
       - name: Restart ADB
         run: |
           adb kill-server
           adb start-server
 
-      # 8. Chạy UI Test
+      # 8. UI Test
       - name: Run UI Tests
         uses: reactivecircus/android-emulator-runner@v2
         with:
@@ -67,7 +64,6 @@ jobs:
             -no-boot-anim
             -no-snapshot-save
             -memory 2048
-            -partition-size 2048
           emulator-boot-timeout: 600
           script: |
             ./gradlew assembleDebug assembleAndroidTest
