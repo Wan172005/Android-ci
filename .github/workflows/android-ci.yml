@@ -36,15 +36,36 @@ jobs:
       - name: Grant execute permission
         run: chmod +x gradlew
 
-      # 5. Chạy Unit Test (Nhanh)
+      # 5. Set Gradle memory (tránh OOM)
+      - name: Set Gradle Memory
+        run: echo "org.gradle.jvmargs=-Xmx2g -XX:MaxMetaspaceSize=512m" >> gradle.properties
+
+      # 6. Chạy Unit Test
       - name: Run Unit Tests
         run: ./gradlew test
 
-      # 6. Chạy UI Test với Emulator
+      # 7. Restart ADB (tránh offline)
+      - name: Restart ADB
+        run: |
+          adb kill-server
+          adb start-server
+
+      # 8. Chạy UI Test
       - name: Run UI Tests
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 30
-          target: google_apis
+          api-level: 26
+          target: default
           arch: x86_64
-          script: ./gradlew connectedAndroidTest
+          disable-animations: true
+          emulator-options: >
+            -no-window
+            -no-audio
+            -no-boot-anim
+            -no-snapshot-save
+            -memory 2048
+            -partition-size 2048
+          emulator-boot-timeout: 600
+          script: |
+            ./gradlew assembleDebug assembleAndroidTest
+            ./gradlew connectedAndroidTest
