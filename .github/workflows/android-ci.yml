@@ -38,7 +38,10 @@ jobs:
 
       # 5. Set Gradle memory (tránh OOM)
       - name: Set Gradle Memory
-        run: echo "org.gradle.jvmargs=-Xmx2g -XX:MaxMetaspaceSize=512m" >> gradle.properties
+        run: |
+          echo "" >> gradle.properties
+          echo "org.gradle.jvmargs=-Xmx2g -XX:MaxMetaspaceSize=512m" >> gradle.properties
+
 
       # 6. Chạy Unit Test
       - name: Run Unit Tests
