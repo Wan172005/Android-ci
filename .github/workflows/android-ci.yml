@@ -62,11 +62,29 @@ jobs:
           emulator-boot-timeout: 600
 
           script: |
+            echo "Waiting for device..."
             adb wait-for-device
 
-            # wait for package manager
-            until adb shell service list | grep -q package; do
+            echo "Waiting for PackageManager..."
+
+            TIMEOUT=180
+            ELAPSED=0
+
+            while true; do
+              if adb shell service list | grep -q package; then
+                break
+              fi
+
               sleep 3
+              ELAPSED=$((ELAPSED+3))
+
+              if [ "$ELAPSED" -ge "$TIMEOUT" ]; then
+                echo "Timeout waiting for PackageManager"
+                adb logcat -d
+                exit 1
+              fi
             done
+
+            echo "Device ready!"
 
             ./gradlew connectedDebugAndroidTest
