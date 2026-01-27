@@ -43,7 +43,7 @@ jobs:
       - name: Run UI Tests
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 30
+          api-level: 28
           target: google_apis
           arch: x86_64
 
@@ -54,6 +54,7 @@ jobs:
             -no-audio
             -no-boot-anim
             -no-snapshot-save
+            -no-snapshot-load
             -gpu swiftshader_indirect
             -memory 2048
             -delay-adb
@@ -61,5 +62,11 @@ jobs:
           emulator-boot-timeout: 600
 
           script: |
-            ./gradlew assembleDebug assembleAndroidTest
+            adb wait-for-device
+
+            # wait for package manager
+            until adb shell service list | grep -q package; do
+              sleep 3
+            done
+
             ./gradlew connectedDebugAndroidTest
