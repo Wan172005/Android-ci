@@ -50,7 +50,19 @@ jobs:
           adb kill-server
           adb start-server
 
-      # 8. UI Test
+      # 8. Đợi emulator ready thật sự
+      - name: Wait for emulator ready
+        run: |
+          adb wait-for-device
+          adb shell 'while [[ -z $(getprop sys.boot_completed) ]]; do sleep 2; done;'
+          adb shell 'while [[ -z $(getprop init.svc.bootanim | grep stopped) ]]; do sleep 2; done;'
+          sleep 30
+
+      # 9. Disable split apk
+      - name: Disable Split APK
+        run: echo "android.injected.enableSplitApkInstall=false" >> gradle.properties
+
+      # 10. Run UI Test
       - name: Run UI Tests
         uses: reactivecircus/android-emulator-runner@v2
         with:
@@ -64,7 +76,7 @@ jobs:
             -no-boot-anim
             -no-snapshot-save
             -memory 2048
-          emulator-boot-timeout: 600
+          emulator-boot-timeout: 900
           script: |
             ./gradlew assembleDebug assembleAndroidTest
             ./gradlew connectedAndroidTest
