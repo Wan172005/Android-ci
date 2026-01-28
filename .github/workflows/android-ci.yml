@@ -21,6 +21,12 @@ jobs:
 
       - uses: android-actions/setup-android@v3
 
+      # Accept licenses + update tools (giảm lỗi sdk)
+      - name: Update SDK
+        run: |
+          yes | sdkmanager --licenses
+          sdkmanager --update
+
       - uses: actions/cache@v3
         with:
           path: |
@@ -30,15 +36,17 @@ jobs:
 
       - run: chmod +x gradlew
 
+      # Unit Test
       - name: Unit Tests
         run: ./gradlew test --no-daemon
 
+      # UI Test
       - name: UI Tests
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 29
+          api-level: 26
           target: default
-          arch: x86
+          arch: x86_64
 
           disable-animations: true
 
@@ -46,12 +54,10 @@ jobs:
             -no-window
             -no-audio
             -no-boot-anim
-            -no-snapshot-load
-            -no-snapshot-save
+            -no-snapshot
             -no-camera
             -gpu swiftshader_indirect
-            -memory 1024
-            -accel off
+            -memory 1536
 
           emulator-boot-timeout: 900
 
@@ -59,9 +65,8 @@ jobs:
             echo "ADB devices:"
             adb devices
 
+            echo "Waiting for device..."
             adb wait-for-device
 
-            adb shell getprop sys.boot_completed
-
+            echo "Running UI tests..."
             ./gradlew connectedDebugAndroidTest --no-daemon
-
