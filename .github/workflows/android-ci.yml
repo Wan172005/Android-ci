@@ -11,62 +11,47 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-java@v4
+      - name: Set up JDK
+        uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 17
 
-      - uses: android-actions/setup-android@v3
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
 
-      # Accept licenses + update tools (giảm lỗi sdk)
+      # Accept licenses + update tools
       - name: Update SDK
         run: |
           yes | sdkmanager --licenses
           sdkmanager --update
 
-      - uses: actions/cache@v3
+      # Cache Gradle
+      - name: Cache Gradle
+        uses: actions/cache@v3
         with:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
           key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*') }}
 
-      - run: chmod +x gradlew
+      - name: Grant execute permission
+        run: chmod +x gradlew
 
       # Unit Test
       - name: Unit Tests
         run: ./gradlew test --no-daemon
 
-      # UI Test
-      - name: UI Tests
+      # ===== UI Test with Emulator =====
+      - name: Run UI Tests (Emulator)
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 26
-          target: default
+          api-level: 29
+          target: google_apis
           arch: x86_64
-
+          profile: Pixel_4
+          emulator-options: -no-window -no-audio -no-boot-anim
           disable-animations: true
-
-          emulator-options: >
-            -no-window
-            -no-audio
-            -no-boot-anim
-            -no-snapshot
-            -no-camera
-            -gpu swiftshader_indirect
-            -memory 1536
-
-          emulator-boot-timeout: 900
-
-          script: |
-            echo "ADB devices:"
-            adb devices
-
-            echo "Waiting for device..."
-            adb wait-for-device
-
-            echo "Running UI tests..."
-            ./gradlew connectedDebugAndroidTest --no-daemon
+          script: ./gradlew connectedAndroidTest
