@@ -9,6 +9,7 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 45  # Tăng timeout cho toàn bộ job
 
     steps:
       - uses: actions/checkout@v4
@@ -44,13 +45,55 @@ jobs:
       - name: Unit Tests
         run: ./gradlew test --no-daemon
 
-      # ===== UI Test with Emulator =====
+      # ===== THÊM: Enable KVM (tăng tốc emulator) =====
+      - name: Enable KVM group perms
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      # ===== THÊM: Tải xuống AVD trước =====
+      - name: AVD cache
+        uses: actions/cache@v3
+        id: avd-cache
+        with:
+          path: |
+            ~/.android/avd/*
+            ~/.android/adb*
+          key: avd-29
+
+      - name: Create AVD and generate snapshot for caching
+        if: steps.avd-cache.outputs.cache-hit != 'true'
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 29
+          target: default  # Đổi từ google_apis sang default (nhẹ hơn)
+          arch: x86_64
+          force-avd-creation: false
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: false
+          script: echo "Generated AVD snapshot for caching."
+
+      # ===== UI Test with Emulator (ĐÃ TỐI ƯU) =====
       - name: Run UI Tests (Emulator)
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 29
-          target: google_apis
+          target: default  # Thay google_apis bằng default
           arch: x86_64
-          emulator-options: -memory 2048 -no-window -no-audio -no-boot-anim
+          force-avd-creation: false
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -memory 3072
           disable-animations: true
-          script: ./gradlew :app:connectedAndroidTest
+          script: |
+            adb wait-for-device shell 'while [[ -z $(getprop sys.boot_completed) ]]; do sleep 1; done; input keyevent 82'
+            adb devices
+            sleep 15
+            ./gradlew :app:connectedAndroidTest --no-daemon --stacktrace
+
+      # ===== THÊM: Upload test reports nếu fail =====
+      - name: Upload Test Reports
+        if: failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-reports
+          path: app/build/reports/androidTests/
