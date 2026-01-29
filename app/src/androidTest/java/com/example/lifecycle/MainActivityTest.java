@@ -53,7 +53,7 @@ public class MainActivityTest {
 
     @Test
     public void testBackgroundColorChange_Purple() {
-        onView(withId(R.id.editText1)).perform(clearText(), typeText("quangg"));
+        onView(withId(R.id.editText1)).perform(clearText(), typeText("quan"));
         onView(withId(R.id.myScreen1)).check(matches(withBackgroundColor(0xFF6200EE)));
     }
 
